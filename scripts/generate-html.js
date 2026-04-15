@@ -43,58 +43,43 @@ function generateHtml(newsData, config) {
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
+            font-family: 'Times New Roman', Georgia, 'Noto Serif SC', serif;
+            background: #f5f1eb;
+            color: #333;
+            line-height: 1.6;
             padding: 20px;
         }
-        .container { max-width: 900px; margin: 0 auto; }
-        .header { text-align: center; color: white; margin-bottom: 30px; }
-        .header h1 { font-size: 2.5em; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.2); }
-        .header p { font-size: 1.2em; opacity: 0.9; }
-        .tag-section {
-            background: white;
-            border-radius: 16px;
-            padding: 24px;
-            margin-bottom: 20px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-        }
-        .tag-header {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 16px;
-            padding-bottom: 12px;
-            border-bottom: 2px solid #f0f0f0;
-        }
-        .tag-icon { font-size: 1.8em; }
-        .tag-title { font-size: 1.4em; color: #333; font-weight: 600; }
-        .news-item { padding: 12px 0; border-bottom: 1px solid #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: #fff; padding: 40px; border: 1px solid #d4c5b0; box-shadow: 0 0 20px rgba(0,0,0,0.1); }
+        .header { text-align: center; border-bottom: 3px double #333; padding-bottom: 20px; margin-bottom: 30px; }
+        .header h1 { font-size: 2.5em; font-weight: bold; letter-spacing: 4px; margin-bottom: 10px; }
+        .header .date { font-size: 0.9em; color: #666; font-style: italic; }
+        .header .edition { font-size: 0.8em; color: #999; margin-top: 5px; }
+        .tag-section { margin-bottom: 30px; border: 1px solid #d4c5b0; padding: 20px; background: #faf8f5; }
+        .tag-header { border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 15px; }
+        .tag-icon { font-size: 1.2em; margin-right: 8px; }
+        .tag-title { font-size: 1.3em; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; }
+        .news-item { padding: 10px 0; border-bottom: 1px dotted #ccc; }
         .news-item:last-child { border-bottom: none; }
-        .news-item a {
-            color: #333;
-            text-decoration: none;
-            display: block;
-            transition: all 0.2s;
-        }
-        .news-item a:hover { color: #667eea; transform: translateX(5px); }
-        .news-title { font-size: 1.1em; line-height: 1.5; margin-bottom: 6px; }
-        .news-meta { font-size: 0.85em; color: #999; }
-        .news-meta span { margin-right: 15px; }
-        .empty-tag { color: #999; font-style: italic; }
-        .footer { text-align: center; color: white; margin-top: 30px; opacity: 0.8; }
+        .news-item a { color: #333; text-decoration: none; display: block; }
+        .news-item a:hover { color: #8b4513; }
+        .news-title { font-size: 1.05em; margin-bottom: 4px; }
+        .news-meta { font-size: 0.8em; color: #888; font-style: italic; }
+        .news-meta span { margin-right: 12px; }
+        .empty-tag { color: #999; font-style: italic; text-align: center; padding: 20px; }
+        .footer { text-align: center; border-top: 2px solid #333; padding-top: 20px; margin-top: 30px; font-size: 0.85em; color: #666; }
         @media (max-width: 600px) {
             body { padding: 10px; }
-            .header h1 { font-size: 1.8em; }
-            .tag-section { padding: 16px; }
+            .container { padding: 20px; }
+            .header h1 { font-size: 1.8em; letter-spacing: 2px; }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>📰 每日新闻</h1>
-            <p>${today}</p>
+            <h1>每日新闻</h1>
+            <div class="date">${today}</div>
+            <div class="edition">第一版 | 珍藏版</div>
         </div>
 `;
 
