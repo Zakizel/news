@@ -31,20 +31,13 @@ jobs:
       - name: Generate HTML
         run: npm run generate
 
-      - name: Debug files
-        run: |
-          pwd
-          ls -la
-          ls -la index.html || echo "index.html not found"
-          cat index.html | head -5 || echo "Cannot read index.html"
-
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v4
         with:
-          path: 'index.html'
+          path: '.'
 
       - name: Deploy to GitHub Pages
         id: deployment
