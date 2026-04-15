@@ -30,13 +30,23 @@ tags:
 
   金融:
     keywords:
+      # 中文关键词
       - 快手
       - 比特币
       - 港股
       - 美股
       - 加密货币
       - 区块链
+      # 英文关键词
+      - Kuaishou
+      - Bitcoin
+      - BTC
+      - Crypto
+      - Stock
+      - HK Stock
     sources:
+      - hackernews
+      - rss
       - eastmoney
 
 # RSS 订阅源配置

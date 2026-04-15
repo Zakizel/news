@@ -318,25 +318,46 @@ async function fetchAllNews(config) {
     const tagNews = [];
     const sources = tagConfig.sources || [];
 
-    // 1. RSS 源
-    const rssSources = config.rss_sources || [];
-    if (sources.includes('rss')) {
-      for (const rssSource of rssSources) {
-        const items = await fetchFromRSS(rssSource, tagConfig.keywords || []);
+    // 金融标签：股票价格信息置顶
+    if (tagName === '金融') {
+      // 1. 东方财富（股票价格）置顶
+      if (sources.includes('eastmoney')) {
+        const items = await fetchFromEastMoney(tagConfig);
         tagNews.push(...items);
       }
-    }
-
-    // 2. 东方财富
-    if (sources.includes('eastmoney')) {
-      const items = await fetchFromEastMoney(tagConfig);
-      tagNews.push(...items);
-    }
-
-    // 3. Hacker News
-    if (sources.includes('hackernews')) {
-      const items = await fetchHackerNews(tagConfig);
-      tagNews.push(...items);
+      // 2. RSS 源
+      const rssSources = config.rss_sources || [];
+      if (sources.includes('rss')) {
+        for (const rssSource of rssSources) {
+          const items = await fetchFromRSS(rssSource, tagConfig.keywords || []);
+          tagNews.push(...items);
+        }
+      }
+      // 3. Hacker News
+      if (sources.includes('hackernews')) {
+        const items = await fetchHackerNews(tagConfig);
+        tagNews.push(...items);
+      }
+    } else {
+      // 其他标签：按原有顺序
+      // 1. RSS 源
+      const rssSources = config.rss_sources || [];
+      if (sources.includes('rss')) {
+        for (const rssSource of rssSources) {
+          const items = await fetchFromRSS(rssSource, tagConfig.keywords || []);
+          tagNews.push(...items);
+        }
+      }
+      // 2. 东方财富
+      if (sources.includes('eastmoney')) {
+        const items = await fetchFromEastMoney(tagConfig);
+        tagNews.push(...items);
+      }
+      // 3. Hacker News
+      if (sources.includes('hackernews')) {
+        const items = await fetchHackerNews(tagConfig);
+        tagNews.push(...items);
+      }
     }
 
     // 去重（按标题）
