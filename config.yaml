@@ -1,0 +1,30 @@
+tags:
+  AI:
+    keywords:
+      - 大模型
+      - LLM
+      - GPT
+      - AI创业
+      - AI产品
+      - ChatGPT
+      - 大语言模型
+      - 人工智能
+    sources:
+      - hackernews
+      - zhihu
+
+  金融:
+    keywords:
+      - 快手股票
+      - 比特币
+      - 港股
+      - 美股
+      - 加密货币
+      - 区块链
+    sources:
+      - zhihu
+      - weibo
+
+# 通知设置（可选，后续可扩展邮件推送）
+notify:
+  enabled: false
