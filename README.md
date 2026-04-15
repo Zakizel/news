@@ -6,7 +6,7 @@
 
 **https://zakizel.github.io/news**
 
-> 每天早上 8 点自动更新
+> 每天凌晨 3 点自动更新
 
 ## 📁 项目结构
 
@@ -84,7 +84,7 @@ tags:
 
 ## ⏰ 运行时间
 
-- 自动运行：每天 **北京时间 8:00**
+- 自动运行：每天 **北京时间 3:00**
 - 手动触发：在 `Actions` 页面点击 `Daily News` → `Run workflow`
 
 ## 🔧 本地测试
@@ -109,4 +109,4 @@ python scripts/generate_html.py
 
 **Q: 想改运行时间？**
 - 编辑 `.github/workflows/daily-news.yml` 中的 cron 表达式
-- `0 0 * * *` 表示每天 0:00 UTC = 北京时间 8:00
+- `0 19 * * *` 表示每天 19:00 UTC = 北京时间次日 3:00
