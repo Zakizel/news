@@ -1,6 +1,6 @@
 /**
  * 新闻获取脚本
- * 从不同来源抓取新闻，按标签关键词过滤
+ * 支持 RSS 订阅源、东方财富 API、Hacker News API
  */
 const axios = require('axios');
 const fs = require('fs');
@@ -10,13 +10,154 @@ const yaml = require('js-yaml');
 const CONFIG_PATH = path.join(__dirname, '..', 'config.yaml');
 const OUTPUT_PATH = path.join(__dirname, '..', 'news_data.json');
 
+// 加载配置
 function loadConfig() {
   const configContent = fs.readFileSync(CONFIG_PATH, 'utf8');
   return yaml.load(configContent);
 }
 
+// 简单 RSS 解析（用正则）
+function parseRSS(xmlString, sourceName) {
+  const items = [];
+  const itemRegex = /<item[^>]*>([\s\S]*?)<\/item>/gi;
+  const titleRegex = /<title[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/i;
+  const linkRegex = /<link[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/link>/i;
+  const dateRegex = /<pubDate[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/pubDate>/i;
+
+  let match;
+  while ((match = itemRegex.exec(xmlString)) !== null && items.length < 30) {
+    const itemXml = match[1];
+    const titleMatch = titleRegex.exec(itemXml);
+    const linkMatch = linkRegex.exec(itemXml);
+    const dateMatch = dateRegex.exec(itemXml);
+
+    if (titleMatch) {
+      const title = titleMatch[1].trim().replace(/<[^>]+>/g, '');
+      const link = linkMatch ? linkMatch[1].trim() : '';
+      const pubDate = dateMatch ? dateMatch[1].trim() : '';
+
+      let time = '';
+      if (pubDate) {
+        const date = new Date(pubDate);
+        if (!isNaN(date)) {
+          time = date.toISOString().slice(0, 16).replace('T', ' ');
+        }
+      }
+
+      items.push({ title, link, source: sourceName, time });
+    }
+  }
+  return items;
+}
+
+// 从 RSS 源获取新闻
+async function fetchFromRSS(sourceConfig, keywords) {
+  const news = [];
+  try {
+    const response = await axios.get(sourceConfig.url, {
+      timeout: 15000,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
+    });
+
+    const items = parseRSS(response.data, sourceConfig.name || 'RSS');
+
+    for (const item of items) {
+      const text = `${item.title}`.toLowerCase();
+      for (const kw of keywords) {
+        if (text.includes(kw.toLowerCase())) {
+          news.push({
+            title: item.title,
+            url: item.link || '#',
+            source: item.source,
+            time: item.time,
+            score: 0
+          });
+          break;
+        }
+      }
+    }
+  } catch (e) {
+    console.error(`RSS fetch error (${sourceConfig.name}):`, e.message);
+  }
+  return news;
+}
+
+// 从东方财富获取数据
+async function fetchFromEastMoney(tagConfig) {
+  const news = [];
+  const keywords = tagConfig.keywords || [];
+
+  try {
+    // 获取 A股 涨幅榜
+    const response = await axios.get(
+      'https://push2.eastmoney.com/api/qt/clist/get',
+      {
+        params: {
+          pn: 1,
+          pz: 50,
+          po: 1,
+          np: 1,
+          fltt: 2,
+          invt: 2,
+          fid: 'f3',
+          fs: 'm:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23',
+          fields: 'f2,f3,f12,f14',
+          _: Date.now()
+        },
+        timeout: 10000,
+        headers: {
+          'Referer': 'https://quote.eastmoney.com/',
+          'User-Agent': 'Mozilla/5.0'
+        }
+      }
+    );
+
+    const data = response.data;
+    if (data && data.data && data.data.diff) {
+      const stocks = data.data.diff;
+
+      for (const stock of stocks.slice(0, 50)) {
+        const stockName = stock.f14 || '';
+        const stockCode = stock.f12 || '';
+        const changePercent = stock.f3 || 0;
+        const price = stock.f2 || 0;
+
+        // 检查是否匹配关键词
+        for (const kw of keywords) {
+          const kwLower = kw.toLowerCase();
+          if (stockName.toLowerCase().includes(kwLower) ||
+              stockCode.includes(kw) ||
+              kwLower.includes('比特币') && (stockName.includes('BTC') || stockName.includes('比特'))) {
+
+            const changeEmoji = changePercent >= 0 ? '🔴' : '🟢';
+            const changeSign = changePercent >= 0 ? '+' : '';
+
+            news.push({
+              title: `${stockName} (${stockCode}) ${changeEmoji} ${changeSign}${changePercent}% 现价:${price}`,
+              url: `https://quote.eastmoney.com/sh${stockCode}.html`,
+              source: '东方财富',
+              time: new Date().toISOString().slice(0, 10),
+              score: changePercent
+            });
+            break;
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.error('EastMoney fetch error:', e.message);
+  }
+
+  return news;
+}
+
+// 从 Hacker News 获取新闻
 async function fetchHackerNews(tagConfig) {
   const news = [];
+  const keywords = tagConfig.keywords || [];
+
   try {
     const response = await axios.get(
       'https://hacker-news.firebaseio.com/v0/topstories.json',
@@ -24,7 +165,7 @@ async function fetchHackerNews(tagConfig) {
     );
     const topIds = response.data.slice(0, 30);
 
-    for (const storyId of topIds) {
+    for (const storyId of topIds.slice(0, 15)) {
       try {
         const storyRes = await axios.get(
           `https://hacker-news.firebaseio.com/v0/item/${storyId}.json`,
@@ -35,10 +176,10 @@ async function fetchHackerNews(tagConfig) {
         if (!story || !story.title) continue;
 
         const title = story.title;
-        const keywords = tagConfig.keywords || [];
+        const text = title.toLowerCase();
 
         for (const kw of keywords) {
-          if (kw.toLowerCase().includes(kw.toLowerCase()) && title.toLowerCase().includes(kw.toLowerCase())) {
+          if (text.includes(kw.toLowerCase())) {
             news.push({
               title: title,
               url: story.url || `https://news.ycombinator.com/item?id=${storyId}`,
@@ -59,81 +200,7 @@ async function fetchHackerNews(tagConfig) {
   return news;
 }
 
-async function fetchZhihu(tagConfig) {
-  const news = [];
-  try {
-    const response = await axios.get(
-      'https://api.zhihu.com/topstory/hot-lists/total?limit=20',
-      {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          'X-API-Version': '3.0.40'
-        },
-        timeout: 10000
-      }
-    );
-
-    const items = response.data?.data || [];
-    const keywords = tagConfig.keywords || [];
-
-    for (const item of items) {
-      const target = item.target || {};
-      const title = target.title || '';
-
-      for (const kw of keywords) {
-        if (title.includes(kw)) {
-          news.push({
-            title: title,
-            url: target.url || 'https://www.zhihu.com',
-            source: '知乎',
-            time: new Date().toISOString().slice(0, 10),
-            heat: target.follower_count || 0
-          });
-          break;
-        }
-      }
-    }
-  } catch (e) {
-    console.error('Zhihu fetch error:', e.message);
-  }
-  return news;
-}
-
-async function fetchGithub(tagConfig) {
-  const news = [];
-  try {
-    const query = (tagConfig.keywords || []).join(' ');
-    const response = await axios.get(
-      'https://api.github.com/search/repositories',
-      {
-        params: {
-          q: `${query} created:>2024-01-01`,
-          sort: 'stars',
-          per_page: 10
-        },
-        headers: {
-          'Accept': 'application/vnd.github.v3+json'
-        },
-        timeout: 10000
-      }
-    );
-
-    const items = response.data?.items || [];
-    for (const item of items) {
-      news.push({
-        title: `${item.name}: ${item.description || 'No description'}`,
-        url: item.html_url,
-        source: 'GitHub',
-        time: item.created_at?.slice(0, 10) || '',
-        stars: item.stargazers_count || 0
-      });
-    }
-  } catch (e) {
-    console.error('GitHub fetch error:', e.message);
-  }
-  return news;
-}
-
+// 聚合所有新闻
 async function fetchAllNews(config) {
   const allNews = {};
   const tags = config.tags || {};
@@ -142,19 +209,28 @@ async function fetchAllNews(config) {
     const tagNews = [];
     const sources = tagConfig.sources || [];
 
-    const fetchPromises = [];
-    if (sources.includes('hackernews')) fetchPromises.push(fetchHackerNews(tagConfig));
-    if (sources.includes('zhihu')) fetchPromises.push(fetchZhihu(tagConfig));
-    if (sources.includes('github')) fetchPromises.push(fetchGithub(tagConfig));
-
-    const results = await Promise.allSettled(fetchPromises);
-    for (const result of results) {
-      if (result.status === 'fulfilled') {
-        tagNews.push(...result.value);
+    // 1. RSS 源
+    const rssSources = config.rss_sources || [];
+    if (sources.includes('rss')) {
+      for (const rssSource of rssSources) {
+        const items = await fetchFromRSS(rssSource, tagConfig.keywords || []);
+        tagNews.push(...items);
       }
     }
 
-    // 去重
+    // 2. 东方财富
+    if (sources.includes('eastmoney')) {
+      const items = await fetchFromEastMoney(tagConfig);
+      tagNews.push(...items);
+    }
+
+    // 3. Hacker News
+    if (sources.includes('hackernews')) {
+      const items = await fetchHackerNews(tagConfig);
+      tagNews.push(...items);
+    }
+
+    // 去重（按标题）
     const seen = new Set();
     const uniqueNews = tagNews.filter(n => {
       if (seen.has(n.title)) return false;
@@ -168,6 +244,7 @@ async function fetchAllNews(config) {
   return allNews;
 }
 
+// 主函数
 async function main() {
   console.log('Loading config...');
   const config = loadConfig();

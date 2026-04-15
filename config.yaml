@@ -11,20 +11,22 @@ tags:
       - 人工智能
     sources:
       - hackernews
-      - zhihu
+      - rss
 
   金融:
     keywords:
-      - 快手股票
+      - 快手
       - 比特币
       - 港股
       - 美股
       - 加密货币
       - 区块链
     sources:
-      - zhihu
-      - weibo
+      - eastmoney
 
-# 通知设置（可选，后续可扩展邮件推送）
-notify:
-  enabled: false
+# RSS 订阅源配置
+rss_sources:
+  - name: Hacker News
+    url: https://hnrss.org/frontpage
+  - name: 36氪
+    url: https://36kr.com/feed
