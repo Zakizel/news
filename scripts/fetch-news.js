@@ -50,6 +50,24 @@ function parseRSS(xmlString, sourceName) {
   return items;
 }
 
+// 翻译文本到中文
+async function translateToChinese(text) {
+  if (!text || text.length < 2) return text;
+  try {
+    const encoded = encodeURIComponent(text);
+    const response = await axios.get(
+      `https://api.mymemory.translated.net/get?q=${encoded}&langpair=en|zh`,
+      { timeout: 5000 }
+    );
+    if (response.data?.responseData?.translatedText) {
+      return response.data.responseData.translatedText;
+    }
+  } catch (e) {
+    // 翻译失败返回原文
+  }
+  return text;
+}
+
 // 从 RSS 源获取新闻
 async function fetchFromRSS(sourceConfig, keywords) {
   const news = [];
@@ -67,8 +85,10 @@ async function fetchFromRSS(sourceConfig, keywords) {
       const text = `${item.title}`.toLowerCase();
       for (const kw of keywords) {
         if (text.includes(kw.toLowerCase())) {
+          // 翻译标题
+          const translatedTitle = await translateToChinese(item.title);
           news.push({
-            title: item.title,
+            title: translatedTitle || item.title,
             url: item.link || '#',
             source: item.source,
             time: item.time,
@@ -267,8 +287,10 @@ async function fetchHackerNews(tagConfig) {
 
         for (const kw of keywords) {
           if (text.includes(kw.toLowerCase())) {
+            // 翻译标题
+            const translatedTitle = await translateToChinese(title);
             news.push({
-              title: title,
+              title: translatedTitle || title,
               url: story.url || `https://news.ycombinator.com/item?id=${storyId}`,
               source: 'Hacker News',
               time: new Date(story.time * 1000).toISOString().slice(0, 16).replace('T', ' '),
@@ -340,13 +362,16 @@ async function main() {
   console.log('Fetching news...');
   const news = await fetchAllNews(config);
 
-  console.log('Writing news data to:', OUTPUT_PATH);
-  fs.writeFileSync(OUTPUT_PATH, JSON.stringify(news, null, 2), 'utf8');
-
-  console.log(`Fetched news for tags: ${Object.keys(news).join(', ')}`);
+  console.log('\n--- Results ---');
   for (const [tag, items] of Object.entries(news)) {
-    console.log(`  ${tag}: ${items.length} items`);
+    console.log(`${tag}: ${items.length} items`);
+    for (const item of items) {
+      console.log(`  - [${item.source}] ${item.title}`);
+    }
   }
+
+  console.log('\nWriting news data to:', OUTPUT_PATH);
+  fs.writeFileSync(OUTPUT_PATH, JSON.stringify(news, null, 2), 'utf8');
 }
 
 main().catch(console.error);

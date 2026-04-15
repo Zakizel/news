@@ -1,6 +1,7 @@
 tags:
   AI:
     keywords:
+      # 中文关键词
       - 大模型
       - LLM
       - GPT
@@ -9,6 +10,20 @@ tags:
       - ChatGPT
       - 大语言模型
       - 人工智能
+      # 英文关键词
+      - AI
+      - LLM
+      - GPT
+      - OpenAI
+      - Anthropic
+      - Gemini
+      - Claude
+      - Chatbot
+      - Neural Network
+      - Machine Learning
+      - Deep Learning
+      - AGI
+      - Artificial Intelligence
     sources:
       - hackernews
       - rss

@@ -1,10 +1,45 @@
 {
   "AI": [
     {
-      "title": "CPUs Aren't Dead. Gemma2B Out Scored GPT-3.5 Turbo on Test That Made It Famous",
+      "title": "人工智能辅助认知危及人类发展",
+      "url": "https://heidenstedt.org/posts/2026/ai-assisted-cognition-endangers-human-development/",
+      "source": "Hacker News",
+      "time": "2026-04-15 18:16",
+      "score": 0
+    },
+    {
+      "title": "CPU没有死。Gemma2B在测试中获得GPT-3.5得分，使其出名",
       "url": "https://seqpu.com/CPUsArentDead/",
       "source": "Hacker News",
       "time": "2026-04-15 17:07",
+      "score": 0
+    },
+    {
+      "title": "Adaptional (YC S25)正在招聘创始人工智能工程师",
+      "url": "https://www.ycombinator.com/companies/adaptional/jobs/k7W6ge9-founding-engineer",
+      "source": "Hacker News",
+      "time": "2026-04-15 17:00",
+      "score": 0
+    },
+    {
+      "title": "Show HN ： Libretto –使AI浏览器自动化具有确定性",
+      "url": "https://github.com/saffron-health/libretto",
+      "source": "Hacker News",
+      "time": "2026-04-15 15:57",
+      "score": 0
+    },
+    {
+      "title": "Gemini Robotics-ER 1.6",
+      "url": "https://deepmind.google/blog/gemini-robotics-er-1-6/",
+      "source": "Hacker News",
+      "time": "2026-04-15 14:02",
+      "score": 0
+    },
+    {
+      "title": "研究：回到基础的方法可以在语言分析中与人工智能相匹配或优于人工智能",
+      "url": "https://www.manchester.ac.uk/about/news/back-to-basics-approach-can-match-or-outperform-ai/",
+      "source": "Hacker News",
+      "time": "2026-04-15 12:21",
       "score": 0
     }
   ],
