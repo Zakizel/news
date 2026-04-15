@@ -1,0 +1,15 @@
+{
+  "name": "news-daily",
+  "version": "1.0.0",
+  "description": "每日新闻推送",
+  "main": "index.js",
+  "scripts": {
+    "fetch": "node scripts/fetch-news.js",
+    "generate": "node scripts/generate-html.js",
+    "build": "node scripts/fetch-news.js && node scripts/generate-html.js"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "js-yaml": "^4.1.0"
+  }
+}
