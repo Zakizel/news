@@ -171,10 +171,12 @@ async function fetchAllNews(config) {
 async function main() {
   console.log('Loading config...');
   const config = loadConfig();
+  console.log('Config loaded:', JSON.stringify(Object.keys(config.tags || {})));
 
   console.log('Fetching news...');
   const news = await fetchAllNews(config);
 
+  console.log('Writing news data to:', OUTPUT_PATH);
   fs.writeFileSync(OUTPUT_PATH, JSON.stringify(news, null, 2), 'utf8');
 
   console.log(`Fetched news for tags: ${Object.keys(news).join(', ')}`);

@@ -152,10 +152,12 @@ function generateHtml(newsData, config) {
 }
 
 function main() {
+  console.log('Loading config and news data...');
   const config = loadConfig();
   const newsData = loadNews();
   const html = generateHtml(newsData, config);
 
+  console.log('Writing HTML to:', OUTPUT_PATH);
   fs.writeFileSync(OUTPUT_PATH, html, 'utf8');
 
   const totalItems = Object.values(newsData).reduce((sum, arr) => sum + arr.length, 0);
