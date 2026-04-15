@@ -89,14 +89,20 @@ async function fetchFromEastMoney(tagConfig) {
   const news = [];
   const keywords = tagConfig.keywords || [];
 
+  // 股票代码映射（用于精确查询）
+  const stockCodes = {
+    '快手': '116.01024',
+    '比特币': 'btcusd',  // 虚拟货币
+  };
+
   try {
-    // 获取 A股 涨幅榜
-    const response = await axios.get(
+    // 1. 查询 A股（按涨跌幅排序取前100）
+    const aStockResponse = await axios.get(
       'https://push2.eastmoney.com/api/qt/clist/get',
       {
         params: {
           pn: 1,
-          pz: 50,
+          pz: 100,
           po: 1,
           np: 1,
           fltt: 2,
@@ -114,34 +120,115 @@ async function fetchFromEastMoney(tagConfig) {
       }
     );
 
-    const data = response.data;
-    if (data && data.data && data.data.diff) {
-      const stocks = data.data.diff;
+    // 2. 精确查询港股（使用港股排行榜）
+    const hkListResponse = await axios.get(
+      'https://push2.eastmoney.com/api/qt/clist/get',
+      {
+        params: {
+          pn: 1,
+          pz: 200,
+          po: 1,
+          np: 1,
+          fltt: 2,
+          invt: 2,
+          fid: 'f3',
+          fs: 'm:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23,m:1+t:16',
+          fields: 'f2,f3,f12,f14',
+          _: Date.now()
+        },
+        timeout: 10000,
+        headers: {
+          'Referer': 'https://quote.eastmoney.com/',
+          'User-Agent': 'Mozilla/5.0'
+        }
+      }
+    );
 
-      for (const stock of stocks.slice(0, 50)) {
-        const stockName = stock.f14 || '';
-        const stockCode = stock.f12 || '';
-        const changePercent = stock.f3 || 0;
-        const price = stock.f2 || 0;
+    // 合并数据
+    const stocks = [];
+    if (aStockResponse.data?.data?.diff) {
+      stocks.push(...aStockResponse.data.data.diff);
+    }
+    if (hkListResponse.data?.data?.diff) {
+      stocks.push(...hkListResponse.data.data.diff);
+    }
 
-        // 检查是否匹配关键词
+    for (const stock of stocks.slice(0, 200)) {
+      const stockName = stock.f14 || '';
+      const stockCode = stock.f12 || '';
+      const changePercent = stock.f3 || 0;
+      // 判断是港股还是A股，港股代码通常是5位数字
+      const isHK = stockCode.length === 5;
+      const price = isHK ? (stock.f2 || 0) / 1000 : (stock.f2 || 0) / 100;
+
+      for (const kw of keywords) {
+        const kwLower = kw.toLowerCase();
+        if (stockName.toLowerCase().includes(kwLower) || stockCode.toLowerCase().includes(kwLower)) {
+          const changeEmoji = changePercent >= 0 ? '🔴' : '🟢';
+          const changeSign = changePercent >= 0 ? '+' : '';
+
+          let quoteUrl = `https://quote.eastmoney.com/sh${stockCode}.html`;
+          if (stockCode.startsWith('0') || stockCode.startsWith('3')) {
+            quoteUrl = `https://quote.eastmoney.com/sz${stockCode}.html`;
+          } else if (stockCode.length === 5) {
+            quoteUrl = `https://quote.eastmoney.com/hk/${stockCode.toLowerCase()}.html`;
+          }
+
+          news.push({
+            title: `${stockName} (${stockCode}) ${changeEmoji} ${changeSign}${changePercent}% 现价:${price}港币`,
+            url: quoteUrl,
+            source: '东方财富',
+            time: new Date().toISOString().slice(0, 10),
+            score: changePercent
+          });
+          break;
+        }
+      }
+    }
+
+    // 3. 如果没找到，尝试精确查询特定股票
+    if (news.length === 0) {
+      for (const [name, code] of Object.entries(stockCodes)) {
         for (const kw of keywords) {
-          const kwLower = kw.toLowerCase();
-          if (stockName.toLowerCase().includes(kwLower) ||
-              stockCode.includes(kw) ||
-              kwLower.includes('比特币') && (stockName.includes('BTC') || stockName.includes('比特'))) {
+          if (kw.includes(name) || name.includes(kw)) {
+            try {
+              // 使用东方财富的实时报价 API
+              const quoteResponse = await axios.get(
+                `https://push2.eastmoney.com/api/qt/stock/get`,
+                {
+                  params: {
+                    secid: code,
+                    fields: 'f43,f170,f57,f58,f107,f169',
+                    _: Date.now()
+                  },
+                  timeout: 10000,
+                  headers: {
+                    'Referer': 'https://quote.eastmoney.com/',
+                    'User-Agent': 'Mozilla/5.0'
+                  }
+                }
+              );
 
-            const changeEmoji = changePercent >= 0 ? '🔴' : '🟢';
-            const changeSign = changePercent >= 0 ? '+' : '';
+              if (quoteResponse.data?.data) {
+                const d = quoteResponse.data.data;
+                const stockName = d.f58 || name;
+                const price = (d.f43 || 0) / 1000;  // 港股除以1000
+                const changePercent = (d.f170 || 0) / 100;
 
-            news.push({
-              title: `${stockName} (${stockCode}) ${changeEmoji} ${changeSign}${changePercent}% 现价:${price}`,
-              url: `https://quote.eastmoney.com/sh${stockCode}.html`,
-              source: '东方财富',
-              time: new Date().toISOString().slice(0, 10),
-              score: changePercent
-            });
-            break;
+                const changeEmoji = changePercent >= 0 ? '🔴' : '🟢';
+                const changeSign = changePercent >= 0 ? '+' : '';
+
+                news.push({
+                  title: `${stockName} ${changeEmoji} ${changeSign}${changePercent}% 现价:${price}港币`,
+                  url: `https://quote.eastmoney.com/hk/01024.html`,
+                  source: '东方财富',
+                  time: new Date().toISOString().slice(0, 10),
+                  score: changePercent
+                });
+              }
+            } catch (e) {
+              console.error(`Quote fetch error for ${name}:`, e.message);
+            }
           }
         }
       }
